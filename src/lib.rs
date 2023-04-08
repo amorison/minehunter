@@ -1,7 +1,7 @@
 mod engine;
 
 use eframe::{egui, epaint::FontId};
-use engine::{Board, Cell, MineField, Shape};
+use engine::{Board, Cell, CellState, MineField, Shape};
 
 pub enum MineHunterApp {
     WaitingBoard(Shape),
@@ -16,9 +16,9 @@ impl MineHunterApp {
         }
     }
 
-    fn get(&self, irow: usize, icol: usize) -> Option<Cell> {
+    fn get(&self, irow: usize, icol: usize) -> CellState {
         match self {
-            Self::WaitingBoard(_) => None,
+            Self::WaitingBoard(_) => CellState::Hidden,
             Self::InitializedBoard(board) => board.get(irow, icol),
         }
     }
@@ -52,16 +52,26 @@ impl MineHunterApp {
     }
 }
 
-fn cell_btn_ui(ui: &mut egui::Ui, cell: Option<Cell>) -> egui::Response {
+fn cell_selectable(cell: CellState) -> bool {
+    match cell {
+        CellState::Hidden | CellState::Flagged => true,
+        CellState::Visible(_) => false,
+    }
+}
+
+fn cell_btn_ui(ui: &mut egui::Ui, cell: CellState) -> egui::Response {
     let desired_size = ui.spacing().interact_size.y * egui::vec2(2.0, 2.0);
     let (rect, response) = ui.allocate_exact_size(desired_size, egui::Sense::click_and_drag());
     if ui.is_rect_visible(rect) {
-        let visuals = ui.style().interact_selectable(&response, cell.is_none());
+        let visuals = ui
+            .style()
+            .interact_selectable(&response, cell_selectable(cell));
         let label = match cell {
-            None => String::new(),
-            Some(Cell::Clear) => String::new(),
-            Some(Cell::Mine) => "B!".to_owned(),
-            Some(Cell::Neighbouring(i)) => format!("{i}"),
+            CellState::Hidden => String::new(),
+            CellState::Flagged => "F".to_owned(),
+            CellState::Visible(Cell::Clear) => String::new(),
+            CellState::Visible(Cell::Mine) => "B!".to_owned(),
+            CellState::Visible(Cell::Neighbouring(i)) => format!("{i}"),
         };
         let rect = rect.expand(visuals.expansion);
         let painter = ui.painter();
@@ -82,7 +92,7 @@ fn cell_btn_ui(ui: &mut egui::Ui, cell: Option<Cell>) -> egui::Response {
     response
 }
 
-fn cell_btn(cell: Option<Cell>) -> impl egui::Widget {
+fn cell_btn(cell: CellState) -> impl egui::Widget {
     move |ui: &mut egui::Ui| cell_btn_ui(ui, cell)
 }
 
@@ -113,7 +123,7 @@ impl ::eframe::App for MineHunterApp {
                     for icol in 0..ncols {
                         let cell = self.get(irow, icol);
                         let response = ui.add(cell_btn(cell));
-                        if cell.is_none() && response.lax_clicked() {
+                        if cell_selectable(cell) && response.lax_clicked() {
                             self.reveal(irow, icol);
                         };
                     }

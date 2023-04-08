@@ -111,25 +111,32 @@ impl MineField {
     }
 }
 
+#[derive(Copy, Clone)]
+pub enum CellState {
+    Hidden,
+    Flagged,
+    Visible(Cell),
+}
+
 pub struct Board {
     field: MineField,
-    hidden: Vec<bool>,
+    state: Vec<CellState>,
 }
 
 impl Board {
     pub fn new(field: MineField) -> Self {
-        let hidden = vec![true; field.shape.ncells()];
-        Self { field, hidden }
+        let state = vec![CellState::Hidden; field.shape.ncells()];
+        Self { field, state }
     }
 
     pub fn reveal(&mut self, irow: usize, icol: usize) -> Cell {
-        if let Some(cell) = self.get(irow, icol) {
+        if let CellState::Visible(cell) = self.get(irow, icol) {
             cell
         } else {
             let shape = &self.field.shape;
             let icell = shape.idx(irow, icol);
-            self.hidden[icell] = false;
             let cell = self.field.get(irow, icol);
+            self.state[icell] = CellState::Visible(cell);
             if matches!(cell, Cell::Clear) {
                 for (ir, ic) in shape.neighbours(irow, icol) {
                     self.reveal(ir, ic);
@@ -139,13 +146,9 @@ impl Board {
         }
     }
 
-    pub fn get(&self, irow: usize, icol: usize) -> Option<Cell> {
+    pub fn get(&self, irow: usize, icol: usize) -> CellState {
         let icell = self.field.shape.idx(irow, icol);
-        if self.hidden[icell] {
-            None
-        } else {
-            Some(self.field.get(irow, icol))
-        }
+        self.state[icell]
     }
 
     pub fn shape(&self) -> &Shape {
@@ -198,9 +201,12 @@ mod tests {
     fn board_reveal() {
         let mut board = Board::new(MineField::new(5, 5, [(2, 2)]));
         board.reveal(1, 1);
-        assert!(board.get(0, 0).is_none());
-        assert!(matches!(board.get(1, 1), Some(Cell::Neighbouring(1))));
+        assert!(matches!(board.get(0, 0), CellState::Hidden));
+        assert!(matches!(
+            board.get(1, 1),
+            CellState::Visible(Cell::Neighbouring(1))
+        ));
         board.reveal(4, 4);
-        assert!(matches!(board.get(0, 0), Some(Cell::Clear)));
+        assert!(matches!(board.get(0, 0), CellState::Visible(Cell::Clear)));
     }
 }
