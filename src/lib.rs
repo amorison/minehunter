@@ -86,6 +86,22 @@ fn cell_btn(cell: Option<Cell>) -> impl egui::Widget {
     move |ui: &mut egui::Ui| cell_btn_ui(ui, cell)
 }
 
+trait LaxClicked {
+    fn lax_clicked(&self) -> bool;
+    fn lax_r_clicked(&self) -> bool;
+}
+
+impl LaxClicked for egui::Response {
+    fn lax_clicked(&self) -> bool {
+        self.clicked() || (self.drag_released_by(egui::PointerButton::Primary) && self.hovered())
+    }
+
+    fn lax_r_clicked(&self) -> bool {
+        self.secondary_clicked()
+            || (self.drag_released_by(egui::PointerButton::Secondary) && self.hovered())
+    }
+}
+
 impl ::eframe::App for MineHunterApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut ::eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -97,11 +113,7 @@ impl ::eframe::App for MineHunterApp {
                     for icol in 0..ncols {
                         let cell = self.get(irow, icol);
                         let response = ui.add(cell_btn(cell));
-                        if cell.is_none()
-                            && (response.clicked()
-                                || (response.drag_released_by(egui::PointerButton::Primary)
-                                    && response.hovered()))
-                        {
+                        if cell.is_none() && response.lax_clicked() {
                             self.reveal(irow, icol);
                         };
                     }
