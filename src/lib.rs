@@ -42,6 +42,23 @@ impl MineHunterApp {
         }
     }
 
+    fn reveal_around_nb(&mut self, irow: usize, icol: usize) {
+        if let CellState::Visible(Cell::Neighbouring(n_nb)) = self.get(irow, icol) {
+            let n_flagged = self
+                .shape()
+                .neighbours(irow, icol)
+                .filter(|&(ir, ic)| matches!(self.get(ir, ic), CellState::Flagged))
+                .count();
+            if n_flagged == n_nb.into() {
+                for (ir, ic) in self.shape().neighbours(irow, icol) {
+                    if matches!(self.get(ir, ic), CellState::Hidden) {
+                        self.reveal(ir, ic);
+                    }
+                }
+            }
+        }
+    }
+
     fn toggle_flag(&mut self, irow: usize, icol: usize) {
         match self {
             Self::WaitingBoard(_) => {}
@@ -132,11 +149,18 @@ impl ::eframe::App for MineHunterApp {
                     for icol in 0..ncols {
                         let cell = self.get(irow, icol);
                         let response = ui.add(cell_btn(cell));
-                        if cell_selectable(cell) && response.lax_clicked() {
-                            self.reveal(irow, icol);
-                        } else if cell_selectable(cell) && response.lax_r_clicked() {
-                            self.toggle_flag(irow, icol);
-                        };
+                        match cell {
+                            CellState::Hidden if response.lax_clicked() => {
+                                self.reveal(irow, icol);
+                            }
+                            CellState::Hidden | CellState::Flagged if response.lax_r_clicked() => {
+                                self.toggle_flag(irow, icol);
+                            }
+                            CellState::Visible(_) if response.lax_clicked() => {
+                                self.reveal_around_nb(irow, icol);
+                            }
+                            _ => {}
+                        }
                     }
                     ui.end_row();
                 }
