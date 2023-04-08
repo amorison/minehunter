@@ -1,6 +1,6 @@
 mod engine;
 
-use eframe::egui;
+use eframe::{egui, epaint::FontId};
 use engine::{Board, Cell, MineField, Shape};
 
 pub enum MineHunterApp {
@@ -52,31 +52,58 @@ impl MineHunterApp {
     }
 }
 
+fn cell_btn_ui(ui: &mut egui::Ui, cell: Option<Cell>) -> egui::Response {
+    let desired_size = ui.spacing().interact_size.y * egui::vec2(2.0, 2.0);
+    let (rect, response) = ui.allocate_exact_size(desired_size, egui::Sense::click_and_drag());
+    if ui.is_rect_visible(rect) {
+        let visuals = ui.style().interact_selectable(&response, cell.is_none());
+        let label = match cell {
+            None => String::new(),
+            Some(Cell::Clear) => String::new(),
+            Some(Cell::Mine) => "B!".to_owned(),
+            Some(Cell::Neighbouring(i)) => format!("{i}"),
+        };
+        let rect = rect.expand(visuals.expansion);
+        let painter = ui.painter();
+        painter.rect(
+            rect,
+            0.05 * rect.height(),
+            visuals.bg_fill,
+            visuals.fg_stroke,
+        );
+        painter.text(
+            rect.center(),
+            egui::Align2::CENTER_CENTER,
+            label,
+            FontId::default(),
+            visuals.text_color(),
+        );
+    }
+    response
+}
+
+fn cell_btn(cell: Option<Cell>) -> impl egui::Widget {
+    move |ui: &mut egui::Ui| cell_btn_ui(ui, cell)
+}
+
 impl ::eframe::App for MineHunterApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut ::eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
+            ui.spacing_mut().item_spacing = egui::vec2(1.0, 4.0);
             let nrows = self.shape().nrows;
             let ncols = self.shape().ncols;
             egui::Grid::new(0).show(ui, |ui| {
                 for irow in 0..nrows {
                     for icol in 0..ncols {
                         let cell = self.get(irow, icol);
-                        match cell {
-                            None => {
-                                if ui.button("hidden").clicked() {
-                                    self.reveal(irow, icol);
-                                }
-                            }
-                            Some(Cell::Clear) => {
-                                ui.label("clear");
-                            }
-                            Some(Cell::Mine) => {
-                                ui.label("bomb");
-                            }
-                            Some(Cell::Neighbouring(i)) => {
-                                ui.label(format!("{i}"));
-                            }
-                        }
+                        let response = ui.add(cell_btn(cell));
+                        if cell.is_none()
+                            && (response.clicked()
+                                || (response.drag_released_by(egui::PointerButton::Primary)
+                                    && response.hovered()))
+                        {
+                            self.reveal(irow, icol);
+                        };
                     }
                     ui.end_row();
                 }
