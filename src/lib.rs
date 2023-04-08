@@ -78,12 +78,10 @@ impl MineHunterApp {
         if let Self::InitializedBoard(board) = self {
             match board.outcome() {
                 Outcome::Won => {
-                    let board = mem::replace(board, Board::new(MineField::new(0, 0, vec![])));
-                    *self = Self::WonBoard(board);
+                    *self = Self::WonBoard(mem::take(board));
                 }
                 Outcome::Lost => {
-                    let board = mem::replace(board, Board::new(MineField::new(0, 0, vec![])));
-                    *self = Self::LostBoard(board);
+                    *self = Self::LostBoard(mem::take(board));
                 }
                 Outcome::Ongoing => {}
             }

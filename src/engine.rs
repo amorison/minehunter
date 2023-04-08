@@ -9,6 +9,7 @@ pub enum Cell {
     Mine,
 }
 
+#[derive(Default)]
 pub struct Shape {
     pub nrows: usize,
     pub ncols: usize,
@@ -42,6 +43,7 @@ impl Shape {
     }
 }
 
+#[derive(Default)]
 pub struct MineField {
     shape: Shape,
     cells: Vec<Cell>,
@@ -130,6 +132,7 @@ pub enum Outcome {
     Ongoing,
 }
 
+#[derive(Default)]
 pub struct Board {
     field: MineField,
     state: Vec<CellState>,
