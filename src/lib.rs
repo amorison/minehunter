@@ -41,6 +41,15 @@ impl MineHunterApp {
             }
         }
     }
+
+    fn toggle_flag(&mut self, irow: usize, icol: usize) {
+        match self {
+            Self::WaitingBoard(_) => {}
+            Self::InitializedBoard(board) => {
+                board.toggle_flag(irow, icol);
+            }
+        }
+    }
 }
 
 impl MineHunterApp {
@@ -125,6 +134,8 @@ impl ::eframe::App for MineHunterApp {
                         let response = ui.add(cell_btn(cell));
                         if cell_selectable(cell) && response.lax_clicked() {
                             self.reveal(irow, icol);
+                        } else if cell_selectable(cell) && response.lax_r_clicked() {
+                            self.toggle_flag(irow, icol);
                         };
                     }
                     ui.end_row();

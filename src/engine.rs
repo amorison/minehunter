@@ -146,6 +146,15 @@ impl Board {
         }
     }
 
+    pub fn toggle_flag(&mut self, irow: usize, icol: usize) {
+        let icell = self.field.shape.idx(irow, icol);
+        self.state[icell] = match self.state[icell] {
+            CellState::Hidden => CellState::Flagged,
+            CellState::Flagged => CellState::Hidden,
+            other => other,
+        };
+    }
+
     pub fn get(&self, irow: usize, icol: usize) -> CellState {
         let icell = self.field.shape.idx(irow, icol);
         self.state[icell]
