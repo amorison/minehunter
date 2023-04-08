@@ -1,11 +1,15 @@
 mod engine;
 
+use std::mem;
+
 use eframe::{egui, epaint::FontId};
-use engine::{Board, Cell, CellState, MineField, Shape};
+use engine::{Board, Cell, CellState, MineField, Outcome, Shape};
 
 pub enum MineHunterApp {
     WaitingBoard(Shape),
     InitializedBoard(Board),
+    WonBoard(Board),
+    LostBoard(Board),
 }
 
 impl MineHunterApp {
@@ -13,6 +17,8 @@ impl MineHunterApp {
         match self {
             Self::WaitingBoard(shape) => shape,
             Self::InitializedBoard(board) => board.shape(),
+            Self::WonBoard(board) => board.shape(),
+            Self::LostBoard(board) => board.shape(),
         }
     }
 
@@ -20,6 +26,8 @@ impl MineHunterApp {
         match self {
             Self::WaitingBoard(_) => CellState::Hidden,
             Self::InitializedBoard(board) => board.get(irow, icol),
+            Self::WonBoard(board) => board.get(irow, icol),
+            Self::LostBoard(board) => board.get(irow, icol),
         }
     }
 
@@ -39,6 +47,7 @@ impl MineHunterApp {
             Self::InitializedBoard(board) => {
                 board.reveal(irow, icol);
             }
+            Self::WonBoard(_) | Self::LostBoard(_) => {}
         }
     }
 
@@ -60,10 +69,23 @@ impl MineHunterApp {
     }
 
     fn toggle_flag(&mut self, irow: usize, icol: usize) {
-        match self {
-            Self::WaitingBoard(_) => {}
-            Self::InitializedBoard(board) => {
-                board.toggle_flag(irow, icol);
+        if let Self::InitializedBoard(board) = self {
+            board.toggle_flag(irow, icol);
+        }
+    }
+
+    fn update_win_lost(&mut self) {
+        if let Self::InitializedBoard(board) = self {
+            match board.outcome() {
+                Outcome::Won => {
+                    let board = mem::replace(board, Board::new(MineField::new(0, 0, vec![])));
+                    *self = Self::WonBoard(board);
+                }
+                Outcome::Lost => {
+                    let board = mem::replace(board, Board::new(MineField::new(0, 0, vec![])));
+                    *self = Self::LostBoard(board);
+                }
+                Outcome::Ongoing => {}
             }
         }
     }
@@ -166,5 +188,6 @@ impl ::eframe::App for MineHunterApp {
                 }
             });
         });
+        self.update_win_lost();
     }
 }

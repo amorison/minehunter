@@ -45,6 +45,7 @@ impl Shape {
 pub struct MineField {
     shape: Shape,
     cells: Vec<Cell>,
+    n_mines: usize,
 }
 
 impl MineField {
@@ -54,6 +55,7 @@ impl MineField {
     {
         let shape = Shape { nrows, ncols };
         let mines: BTreeSet<_> = mines.into_iter().collect();
+        let n_mines = mines.len();
         let mut cells = Vec::with_capacity(shape.ncells());
         for (irow, icol) in shape.cells() {
             if mines.contains(&(irow, icol)) {
@@ -70,7 +72,11 @@ impl MineField {
                 });
             }
         }
-        MineField { shape, cells }
+        MineField {
+            shape,
+            cells,
+            n_mines,
+        }
     }
 
     pub fn with_rand_mines(nrows: usize, ncols: usize, nmines: usize) -> Self {
@@ -118,6 +124,12 @@ pub enum CellState {
     Visible(Cell),
 }
 
+pub enum Outcome {
+    Won,
+    Lost,
+    Ongoing,
+}
+
 pub struct Board {
     field: MineField,
     state: Vec<CellState>,
@@ -162,6 +174,23 @@ impl Board {
 
     pub fn shape(&self) -> &Shape {
         &self.field.shape
+    }
+
+    pub fn outcome(&self) -> Outcome {
+        let n_mines = self.field.n_mines;
+        let mut n_hidden = 0;
+        for (ir, ic) in self.shape().cells() {
+            match self.get(ir, ic) {
+                CellState::Hidden | CellState::Flagged => n_hidden += 1,
+                CellState::Visible(Cell::Mine) => return Outcome::Lost,
+                CellState::Visible(_) => {}
+            }
+        }
+        if n_hidden == n_mines {
+            Outcome::Won
+        } else {
+            Outcome::Ongoing
+        }
     }
 }
 
