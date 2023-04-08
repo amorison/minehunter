@@ -160,17 +160,24 @@ impl LaxClicked for egui::Response {
 
 impl ::eframe::App for MineHunterApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut ::eframe::Frame) {
-        egui::SidePanel::left("left_panel").show(ctx, |ui| match self {
-            Self::WonBoard(_) => {
-                ui.label("Congratulations!");
+        egui::SidePanel::left("ctrl_panel").show(ctx, |ui| {
+            ui.add_space(15.0);
+            if !matches!(self, Self::WaitingBoard(_)) && ui.button("Restart").clicked() {
+                *self = Self::WaitingBoard(*self.shape());
             }
-            Self::LostBoard(_) => {
-                ui.label("You lost...");
+            ui.add_space(15.0);
+            match self {
+                Self::WonBoard(_) => {
+                    ui.label("Congratulations!");
+                }
+                Self::LostBoard(_) => {
+                    ui.label("You lost...");
+                }
+                Self::WaitingBoard(_) => {
+                    ui.label("Pick a cell");
+                }
+                Self::InitializedBoard(_) => {}
             }
-            Self::WaitingBoard(_) => {
-                ui.label("Pick a cell");
-            }
-            Self::InitializedBoard(_) => {}
         });
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.spacing_mut().item_spacing = egui::vec2(1.0, 4.0);

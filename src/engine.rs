@@ -9,7 +9,7 @@ pub enum Cell {
     Mine,
 }
 
-#[derive(Default)]
+#[derive(Default, Copy, Clone)]
 pub struct Shape {
     pub nrows: usize,
     pub ncols: usize,
