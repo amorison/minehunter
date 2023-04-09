@@ -199,6 +199,13 @@ impl Board {
             Outcome::Ongoing
         }
     }
+
+    pub fn nflagged(&self) -> usize {
+        self.shape()
+            .cells()
+            .filter(|&(ir, ic)| matches!(self.get(ir, ic), CellState::Flagged))
+            .count()
+    }
 }
 
 #[cfg(test)]

@@ -178,25 +178,19 @@ impl ::eframe::App for MineHunterApp {
             let mut nmines = self.nmines();
             let nmines_min = shape.ncells() / 10;
             let nmines_max = 2 * shape.ncells() / 5;
-            match self {
-                Self::WonBoard(_) | Self::LostBoard(_) | Self::WaitingBoard(..) => {
-                    ui.add(egui::Slider::new(&mut nrows, 8..=30).text("Rows"));
-                    ui.add(egui::Slider::new(&mut ncols, 8..=50).text("Cols"));
-                    ui.add(egui::Slider::new(&mut nmines, nmines_min..=nmines_max).text("Mines"));
-                    ui.label(format!("{nmines} mines"));
-                    if nrows != shape.nrows || ncols != shape.ncols {
-                        nmines = nrows * ncols / 5;
-                    }
-                    if nrows != shape.nrows || ncols != shape.ncols || nmines != self.nmines() {
-                        *self = Self::WaitingBoard(Shape { nrows, ncols }, nmines);
-                    }
+            ui.add(egui::Slider::new(&mut nrows, 8..=30).text("Rows"));
+            ui.add(egui::Slider::new(&mut ncols, 8..=50).text("Cols"));
+            ui.add(egui::Slider::new(&mut nmines, nmines_min..=nmines_max).text("Mines"));
+
+            ui.add_space(15.0);
+            if !matches!(self, Self::InitializedBoard(_)) {
+                if nrows != shape.nrows || ncols != shape.ncols {
+                    nmines = nrows * ncols / 5;
                 }
-                Self::InitializedBoard(_) => {
-                    ui.label(format!("{nrows} x {ncols}"));
-                    ui.label(format!("Mines: {}", self.nmines()));
+                if nrows != shape.nrows || ncols != shape.ncols || nmines != self.nmines() {
+                    *self = Self::WaitingBoard(Shape { nrows, ncols }, nmines);
                 }
             }
-            ui.add_space(15.0);
 
             match self {
                 Self::WonBoard(_) => {
@@ -208,7 +202,13 @@ impl ::eframe::App for MineHunterApp {
                 Self::WaitingBoard(..) => {
                     ui.label("Pick a cell");
                 }
-                Self::InitializedBoard(_) => {}
+                Self::InitializedBoard(board) => {
+                    ui.label(format!(
+                        "Flagged: {} / {}",
+                        board.nflagged(),
+                        board.nmines()
+                    ));
+                }
             }
 
             ui.add_space(15.0);
