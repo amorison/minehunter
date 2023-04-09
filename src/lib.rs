@@ -172,11 +172,6 @@ impl ::eframe::App for MineHunterApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut ::eframe::Frame) {
         egui::SidePanel::left("ctrl_panel").show(ctx, |ui| {
             ui.add_space(15.0);
-            if !matches!(self, Self::WaitingBoard(..)) && ui.button("Restart").clicked() {
-                *self = Self::WaitingBoard(*self.shape(), self.nmines());
-            }
-            ui.add_space(15.0);
-
             let shape = self.shape();
             let mut nrows = shape.nrows;
             let mut ncols = shape.ncols;
@@ -214,6 +209,20 @@ impl ::eframe::App for MineHunterApp {
                     ui.label("Pick a cell");
                 }
                 Self::InitializedBoard(_) => {}
+            }
+
+            ui.add_space(15.0);
+            if ui.button("Restart").clicked() {
+                *self = Self::WaitingBoard(*self.shape(), self.nmines());
+            }
+            let presets = [(8, 8, 10), (16, 16, 40), (16, 32, 100)];
+            for (nrows, ncols, nmines) in presets {
+                if ui
+                    .button(format!("{nrows}x{ncols}, {nmines} mines"))
+                    .clicked()
+                {
+                    *self = Self::WaitingBoard(Shape { nrows, ncols }, nmines);
+                }
             }
         });
         egui::CentralPanel::default().show(ctx, |ui| {
