@@ -144,6 +144,10 @@ impl Board {
         Self { field, state }
     }
 
+    pub fn nmines(&self) -> usize {
+        self.field.n_mines
+    }
+
     pub fn reveal(&mut self, irow: usize, icol: usize) -> Cell {
         if let CellState::Visible(cell) = self.get(irow, icol) {
             cell

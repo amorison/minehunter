@@ -6,7 +6,7 @@ use eframe::{egui, epaint::FontId};
 use engine::{Board, Cell, CellState, MineField, Outcome, Shape};
 
 pub enum MineHunterApp {
-    WaitingBoard(Shape),
+    WaitingBoard(Shape, usize),
     InitializedBoard(Board),
     WonBoard(Board),
     LostBoard(Board),
@@ -15,16 +15,23 @@ pub enum MineHunterApp {
 impl MineHunterApp {
     fn shape(&self) -> &Shape {
         match self {
-            Self::WaitingBoard(shape) => shape,
+            Self::WaitingBoard(shape, _) => shape,
             Self::InitializedBoard(board) => board.shape(),
             Self::WonBoard(board) => board.shape(),
             Self::LostBoard(board) => board.shape(),
         }
     }
 
+    fn nmines(&self) -> usize {
+        match self {
+            Self::WaitingBoard(_, nmines) => *nmines,
+            Self::InitializedBoard(b) | Self::WonBoard(b) | Self::LostBoard(b) => b.nmines(),
+        }
+    }
+
     fn get(&self, irow: usize, icol: usize) -> CellState {
         match self {
-            Self::WaitingBoard(_) => CellState::Hidden,
+            Self::WaitingBoard(..) => CellState::Hidden,
             Self::InitializedBoard(board) => board.get(irow, icol),
             Self::WonBoard(board) => board.get(irow, icol),
             Self::LostBoard(board) => board.get(irow, icol),
@@ -33,11 +40,11 @@ impl MineHunterApp {
 
     fn reveal(&mut self, irow: usize, icol: usize) {
         match self {
-            Self::WaitingBoard(shape) => {
+            Self::WaitingBoard(shape, nmines) => {
                 let mut board = Board::new(MineField::with_rand_mines_avoiding(
                     shape.nrows,
                     shape.ncols,
-                    40,
+                    *nmines,
                     irow,
                     icol,
                 ));
@@ -91,10 +98,13 @@ impl MineHunterApp {
 
 impl MineHunterApp {
     pub fn new(_cc: &::eframe::CreationContext<'_>) -> Self {
-        Self::WaitingBoard(Shape {
-            nrows: 16,
-            ncols: 16,
-        })
+        Self::WaitingBoard(
+            Shape {
+                nrows: 16,
+                ncols: 16,
+            },
+            40,
+        )
     }
 }
 
@@ -162,24 +172,33 @@ impl ::eframe::App for MineHunterApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut ::eframe::Frame) {
         egui::SidePanel::left("ctrl_panel").show(ctx, |ui| {
             ui.add_space(15.0);
-            if !matches!(self, Self::WaitingBoard(_)) && ui.button("Restart").clicked() {
-                *self = Self::WaitingBoard(*self.shape());
+            if !matches!(self, Self::WaitingBoard(..)) && ui.button("Restart").clicked() {
+                *self = Self::WaitingBoard(*self.shape(), self.nmines());
             }
             ui.add_space(15.0);
 
             let shape = self.shape();
             let mut nrows = shape.nrows;
             let mut ncols = shape.ncols;
+            let mut nmines = self.nmines();
+            let nmines_min = shape.ncells() / 10;
+            let nmines_max = 2 * shape.ncells() / 5;
             match self {
-                Self::WonBoard(_) | Self::LostBoard(_) | Self::WaitingBoard(_) => {
+                Self::WonBoard(_) | Self::LostBoard(_) | Self::WaitingBoard(..) => {
                     ui.add(egui::Slider::new(&mut nrows, 8..=30).text("Rows"));
                     ui.add(egui::Slider::new(&mut ncols, 8..=50).text("Cols"));
+                    ui.add(egui::Slider::new(&mut nmines, nmines_min..=nmines_max).text("Mines"));
+                    ui.label(format!("{nmines} mines"));
                     if nrows != shape.nrows || ncols != shape.ncols {
-                        *self = Self::WaitingBoard(Shape { nrows, ncols });
+                        nmines = nrows * ncols / 5;
+                    }
+                    if nrows != shape.nrows || ncols != shape.ncols || nmines != self.nmines() {
+                        *self = Self::WaitingBoard(Shape { nrows, ncols }, nmines);
                     }
                 }
                 Self::InitializedBoard(_) => {
                     ui.label(format!("{nrows} x {ncols}"));
+                    ui.label(format!("Mines: {}", self.nmines()));
                 }
             }
             ui.add_space(15.0);
@@ -191,7 +210,7 @@ impl ::eframe::App for MineHunterApp {
                 Self::LostBoard(_) => {
                     ui.label("You lost...");
                 }
-                Self::WaitingBoard(_) => {
+                Self::WaitingBoard(..) => {
                     ui.label("Pick a cell");
                 }
                 Self::InitializedBoard(_) => {}
