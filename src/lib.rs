@@ -166,6 +166,24 @@ impl ::eframe::App for MineHunterApp {
                 *self = Self::WaitingBoard(*self.shape());
             }
             ui.add_space(15.0);
+
+            let shape = self.shape();
+            let mut nrows = shape.nrows;
+            let mut ncols = shape.ncols;
+            match self {
+                Self::WonBoard(_) | Self::LostBoard(_) | Self::WaitingBoard(_) => {
+                    ui.add(egui::Slider::new(&mut nrows, 8..=30).text("Rows"));
+                    ui.add(egui::Slider::new(&mut ncols, 8..=50).text("Cols"));
+                    if nrows != shape.nrows || ncols != shape.ncols {
+                        *self = Self::WaitingBoard(Shape { nrows, ncols });
+                    }
+                }
+                Self::InitializedBoard(_) => {
+                    ui.label(format!("{nrows} x {ncols}"));
+                }
+            }
+            ui.add_space(15.0);
+
             match self {
                 Self::WonBoard(_) => {
                     ui.label("Congratulations!");
