@@ -132,9 +132,18 @@ fn cell_btn_ui(ui: &mut egui::Ui, cell: CellState) -> egui::Response {
             CellState::Visible(Cell::Mine) => "B!".to_owned(),
             CellState::Visible(Cell::Neighbouring(i)) => format!("{i}"),
         };
-        let rect = rect.expand(visuals.expansion);
         let painter = ui.painter();
-        painter.rect(rect, 0.05 * rect.height(), visuals.bg_fill, Stroke::NONE);
+        let rounding = if response.hovered() || response.has_focus() {
+            0.2
+        } else {
+            0.05
+        };
+        painter.rect(
+            rect,
+            rounding * rect.height(),
+            visuals.bg_fill,
+            Stroke::NONE,
+        );
         painter.text(
             rect.center(),
             egui::Align2::CENTER_CENTER,
