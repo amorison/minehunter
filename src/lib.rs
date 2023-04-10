@@ -88,6 +88,11 @@ impl MineHunterApp {
         if let Self::InitializedBoard(board) = self {
             match board.outcome() {
                 Outcome::Won => {
+                    for (ir, ic) in board.shape().cells() {
+                        if let CellState::Hidden = board.get(ir, ic) {
+                            board.toggle_flag(ir, ic);
+                        }
+                    }
                     *self = Self::WonBoard(mem::take(board));
                 }
                 Outcome::Lost => {
