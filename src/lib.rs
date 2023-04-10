@@ -2,7 +2,10 @@ mod engine;
 
 use std::mem;
 
-use eframe::{egui, epaint::FontId};
+use eframe::{
+    egui,
+    epaint::{self, CircleShape, Color32, FontId, RectShape},
+};
 use engine::{Board, Cell, CellState, MineField, Outcome, Shape};
 
 pub enum MineHunterApp {
@@ -122,27 +125,42 @@ fn cell_btn_ui(ui: &mut egui::Ui, cell: CellState) -> egui::Response {
         let visuals = ui
             .style()
             .interact_selectable(&response, cell_selectable(cell));
-        let label = match cell {
-            CellState::Hidden => String::new(),
-            CellState::Flagged => "F".to_owned(),
-            CellState::Visible(Cell::Clear) => String::new(),
-            CellState::Visible(Cell::Mine) => "B!".to_owned(),
-            CellState::Visible(Cell::Neighbouring(i)) => format!("{i}"),
-        };
-        let painter = ui.painter();
         let rounding = if response.hovered() || response.has_focus() {
             0.2
         } else {
             0.05
+        } * rect.height();
+        let shape: epaint::Shape = match cell {
+            CellState::Hidden => RectShape::filled(rect, rounding, visuals.bg_fill).into(),
+            CellState::Flagged => {
+                let radius = if response.hovered() || response.has_focus() {
+                    0.5
+                } else {
+                    0.4
+                } * rect.height();
+                CircleShape::filled(rect.center(), radius, visuals.bg_fill).into()
+            }
+            CellState::Visible(Cell::Clear) => {
+                RectShape::filled(rect, rounding, Color32::TRANSPARENT).into()
+            }
+            CellState::Visible(Cell::Mine) => {
+                CircleShape::filled(rect.center(), 0.5 * rect.height(), Color32::DARK_RED).into()
+            }
+            CellState::Visible(Cell::Neighbouring(_)) => {
+                RectShape::filled(rect, rounding, visuals.bg_fill).into()
+            }
         };
-        painter.rect_filled(rect, rounding * rect.height(), visuals.bg_fill);
-        painter.text(
-            rect.center(),
-            egui::Align2::CENTER_CENTER,
-            label,
-            FontId::default(),
-            visuals.text_color(),
-        );
+        let painter = ui.painter();
+        painter.add(shape);
+        if let CellState::Visible(Cell::Neighbouring(i)) = cell {
+            painter.text(
+                rect.center(),
+                egui::Align2::CENTER_CENTER,
+                i.to_string(),
+                FontId::default(),
+                visuals.text_color(),
+            );
+        }
     }
     response
 }
