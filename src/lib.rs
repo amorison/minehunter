@@ -224,30 +224,35 @@ impl ::eframe::App for MineHunterApp {
             }
         });
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.spacing_mut().item_spacing = egui::vec2(1.0, 4.0);
             let nrows = self.shape().nrows;
             let ncols = self.shape().ncols;
-            egui::Grid::new(0).show(ui, |ui| {
-                for irow in 0..nrows {
-                    for icol in 0..ncols {
-                        let cell = self.get(irow, icol);
-                        let response = ui.add(cell_btn(cell));
-                        match cell {
-                            CellState::Hidden if response.lax_clicked() => {
-                                self.reveal(irow, icol);
+            egui::Grid::new(0)
+                .min_col_width(0.0)
+                .min_row_height(0.0)
+                .spacing((2.0, 2.0))
+                .show(ui, |ui| {
+                    for irow in 0..nrows {
+                        for icol in 0..ncols {
+                            let cell = self.get(irow, icol);
+                            let response = ui.add(cell_btn(cell));
+                            match cell {
+                                CellState::Hidden if response.lax_clicked() => {
+                                    self.reveal(irow, icol);
+                                }
+                                CellState::Hidden | CellState::Flagged
+                                    if response.lax_r_clicked() =>
+                                {
+                                    self.toggle_flag(irow, icol);
+                                }
+                                CellState::Visible(_) if response.lax_clicked() => {
+                                    self.reveal_around_nb(irow, icol);
+                                }
+                                _ => {}
                             }
-                            CellState::Hidden | CellState::Flagged if response.lax_r_clicked() => {
-                                self.toggle_flag(irow, icol);
-                            }
-                            CellState::Visible(_) if response.lax_clicked() => {
-                                self.reveal_around_nb(irow, icol);
-                            }
-                            _ => {}
                         }
+                        ui.end_row();
                     }
-                    ui.end_row();
-                }
-            });
+                });
         });
         self.update_win_lost();
     }
