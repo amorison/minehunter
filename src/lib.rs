@@ -2,10 +2,7 @@ mod engine;
 
 use std::mem;
 
-use eframe::{
-    egui,
-    epaint::{FontId, Stroke},
-};
+use eframe::{egui, epaint::FontId};
 use engine::{Board, Cell, CellState, MineField, Outcome, Shape};
 
 pub enum MineHunterApp {
@@ -138,12 +135,7 @@ fn cell_btn_ui(ui: &mut egui::Ui, cell: CellState) -> egui::Response {
         } else {
             0.05
         };
-        painter.rect(
-            rect,
-            rounding * rect.height(),
-            visuals.bg_fill,
-            Stroke::NONE,
-        );
+        painter.rect_filled(rect, rounding * rect.height(), visuals.bg_fill);
         painter.text(
             rect.center(),
             egui::Align2::CENTER_CENTER,
