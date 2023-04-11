@@ -139,9 +139,9 @@ fn cell_btn_ui(ui: &mut egui::Ui, cell: CellState) -> egui::Response {
             CellState::Hidden => RectShape::filled(rect, rounding, visuals.bg_fill).into(),
             CellState::Flagged => {
                 let radius = if response.hovered() || response.has_focus() {
-                    0.5
+                    0.45
                 } else {
-                    0.4
+                    0.5
                 } * rect.height();
                 CircleShape::filled(rect.center(), radius, visuals.bg_fill).into()
             }
