@@ -29,17 +29,13 @@ impl Shape {
     pub fn cells(&self) -> impl Iterator<Item = (usize, usize)> {
         let nrows = self.nrows;
         let ncols = self.ncols;
-        (0..nrows)
-            .map(move |ir| (0..ncols).map(move |ic| (ir, ic)))
-            .flatten()
+        (0..nrows).flat_map(move |ir| (0..ncols).map(move |ic| (ir, ic)))
     }
 
     pub fn neighbours(&self, irow: usize, icol: usize) -> impl Iterator<Item = (usize, usize)> {
         let row_nbs = irow.saturating_sub(1)..=(irow + 1).min(self.nrows - 1);
         let col_nbs = icol.saturating_sub(1)..=(icol + 1).min(self.ncols - 1);
-        row_nbs
-            .map(move |ir| col_nbs.clone().map(move |ic| (ir, ic)))
-            .flatten()
+        row_nbs.flat_map(move |ir| col_nbs.clone().map(move |ic| (ir, ic)))
     }
 }
 
