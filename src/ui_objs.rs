@@ -33,15 +33,10 @@ fn cell_btn_ui(ui: &mut egui::Ui, cell: CellState) -> egui::Response {
     if ui.is_rect_visible(rect) {
         let color = fill_color(cell, &response);
         let shape: epaint::Shape = match cell {
-            CellState::Hidden => RectShape::filled(rect, 0.0, color).into(),
-            CellState::Flagged => {
+            CellState::Flagged | CellState::Visible(Cell::Mine) => {
                 CircleShape::filled(rect.center(), 0.5 * rect.height(), color).into()
             }
-            CellState::Visible(Cell::Clear) => RectShape::filled(rect, 0.0, color).into(),
-            CellState::Visible(Cell::Mine) => {
-                CircleShape::filled(rect.center(), 0.5 * rect.height(), color).into()
-            }
-            CellState::Visible(Cell::Neighbouring(_)) => RectShape::filled(rect, 0.0, color).into(),
+            _ => RectShape::filled(rect, 0.0, color).into(),
         };
         let painter = ui.painter();
         painter.add(shape);
