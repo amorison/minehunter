@@ -3,7 +3,10 @@ mod ui_objs;
 
 use std::mem;
 
-use eframe::{egui, epaint::Vec2};
+use eframe::{
+    egui::{self, RichText},
+    epaint::Vec2,
+};
 
 use engine::{Board, Cell, CellState, MineField, Outcome, Shape};
 use ui_objs::CellButton;
@@ -156,24 +159,15 @@ impl ::eframe::App for MineHunterApp {
                 }
             }
 
-            match self {
-                Self::WonBoard(_) => {
-                    ui.label("Congratulations!");
-                }
-                Self::LostBoard(_) => {
-                    ui.label("You lost...");
-                }
-                Self::WaitingBoard(..) => {
-                    ui.label("Pick a cell");
-                }
+            let msg: String = match self {
+                Self::WonBoard(_) => "Congratulations!".to_owned(),
+                Self::LostBoard(_) => "You lost...".to_owned(),
+                Self::WaitingBoard(..) => "Pick a cell".to_owned(),
                 Self::InitializedBoard(board) => {
-                    ui.label(format!(
-                        "Flagged: {} / {}",
-                        board.nflagged(),
-                        board.nmines()
-                    ));
+                    format!("Flagged: {} / {}", board.nflagged(), board.nmines())
                 }
-            }
+            };
+            ui.label(RichText::new(msg).size(20.0));
 
             ui.add_space(15.0);
             if ui.button("Restart").clicked() {
