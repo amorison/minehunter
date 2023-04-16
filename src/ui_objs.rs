@@ -27,8 +27,8 @@ fn fill_color(cell: CellState, response: &Response) -> Color32 {
     }
 }
 
-fn cell_btn_ui(ui: &mut egui::Ui, cell: CellState) -> egui::Response {
-    let desired_size = ui.spacing().interact_size.y * egui::vec2(2.0, 2.0);
+fn cell_btn_ui(ui: &mut egui::Ui, cell: CellState, scaling: f32) -> egui::Response {
+    let desired_size = ui.spacing().interact_size.y * egui::vec2(2.0, 2.0) * scaling;
     let (rect, response) = ui.allocate_exact_size(desired_size, egui::Sense::click_and_drag());
     if ui.is_rect_visible(rect) {
         let color = fill_color(cell, &response);
@@ -45,7 +45,10 @@ fn cell_btn_ui(ui: &mut egui::Ui, cell: CellState) -> egui::Response {
                 rect.center(),
                 egui::Align2::CENTER_CENTER,
                 i.to_string(),
-                FontId::default(),
+                FontId {
+                    size: 14.0 * scaling,
+                    family: epaint::FontFamily::Proportional,
+                },
                 Color32::from_gray(180),
             );
         }
@@ -53,6 +56,6 @@ fn cell_btn_ui(ui: &mut egui::Ui, cell: CellState) -> egui::Response {
     response
 }
 
-pub(crate) fn cell_btn(cell: CellState) -> impl egui::Widget {
-    move |ui: &mut egui::Ui| cell_btn_ui(ui, cell)
+pub(crate) fn cell_btn(cell: CellState, scaling: f32) -> impl egui::Widget {
+    move |ui: &mut egui::Ui| cell_btn_ui(ui, cell, scaling)
 }

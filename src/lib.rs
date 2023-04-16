@@ -3,7 +3,7 @@ mod ui_objs;
 
 use std::mem;
 
-use eframe::egui;
+use eframe::{egui, epaint::Vec2};
 
 use engine::{Board, Cell, CellState, MineField, Outcome, Shape};
 use ui_objs::cell_btn;
@@ -192,6 +192,14 @@ impl ::eframe::App for MineHunterApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             let nrows = self.shape().nrows;
             let ncols = self.shape().ncols;
+            let Vec2 {
+                x: width,
+                y: height,
+            } = ui.available_size();
+            let max_btn_width = (width / ncols as f32).floor() - 2.0;
+            let max_btn_height = (height / nrows as f32).floor() - 2.0;
+            let btn_size = max_btn_width.min(max_btn_height);
+            let scaling = (btn_size / (ui.spacing().interact_size.y * 2.0)).max(1.0);
             egui::Grid::new(0)
                 .min_col_width(0.0)
                 .min_row_height(0.0)
@@ -200,7 +208,7 @@ impl ::eframe::App for MineHunterApp {
                     for irow in 0..nrows {
                         for icol in 0..ncols {
                             let cell = self.get(irow, icol);
-                            let response = ui.add(cell_btn(cell));
+                            let response = ui.add(cell_btn(cell, scaling));
                             match cell {
                                 CellState::Hidden if response.lax_clicked() => {
                                     self.reveal(irow, icol);
