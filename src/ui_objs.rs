@@ -32,28 +32,16 @@ fn cell_btn_ui(ui: &mut egui::Ui, cell: CellState) -> egui::Response {
     let (rect, response) = ui.allocate_exact_size(desired_size, egui::Sense::click_and_drag());
     if ui.is_rect_visible(rect) {
         let color = fill_color(cell, &response);
-        let rounding = if response.hovered() || response.has_focus() {
-            0.2
-        } else {
-            0.05
-        } * rect.height();
         let shape: epaint::Shape = match cell {
-            CellState::Hidden => RectShape::filled(rect, rounding, color).into(),
+            CellState::Hidden => RectShape::filled(rect, 0.0, color).into(),
             CellState::Flagged => {
-                let radius = if response.hovered() || response.has_focus() {
-                    0.45
-                } else {
-                    0.5
-                } * rect.height();
-                CircleShape::filled(rect.center(), radius, color).into()
+                CircleShape::filled(rect.center(), 0.5 * rect.height(), color).into()
             }
-            CellState::Visible(Cell::Clear) => RectShape::filled(rect, rounding, color).into(),
+            CellState::Visible(Cell::Clear) => RectShape::filled(rect, 0.0, color).into(),
             CellState::Visible(Cell::Mine) => {
                 CircleShape::filled(rect.center(), 0.5 * rect.height(), color).into()
             }
-            CellState::Visible(Cell::Neighbouring(_)) => {
-                RectShape::filled(rect, rounding, color).into()
-            }
+            CellState::Visible(Cell::Neighbouring(_)) => RectShape::filled(rect, 0.0, color).into(),
         };
         let painter = ui.painter();
         painter.add(shape);
