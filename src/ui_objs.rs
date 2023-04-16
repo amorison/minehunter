@@ -1,14 +1,29 @@
 use eframe::{
-    egui,
+    egui::{self, Response},
     epaint::{self, CircleShape, Color32, FontId, RectShape},
 };
 
 use crate::engine::{Cell, CellState};
 
-fn cell_selectable(cell: CellState) -> bool {
+fn fill_color(cell: CellState, response: &Response) -> Color32 {
+    let hvrd = response.hovered() || response.has_focus();
     match cell {
-        CellState::Hidden | CellState::Flagged => true,
-        CellState::Visible(_) => false,
+        CellState::Hidden | CellState::Flagged => {
+            if hvrd {
+                Color32::from_rgb(0, 115, 160)
+            } else {
+                Color32::from_rgb(0, 92, 128)
+            }
+        }
+        CellState::Visible(Cell::Mine) => Color32::DARK_RED,
+        CellState::Visible(Cell::Clear) => Color32::TRANSPARENT,
+        CellState::Visible(Cell::Neighbouring(_)) => {
+            if hvrd {
+                Color32::from_gray(70)
+            } else {
+                Color32::from_gray(55)
+            }
+        }
     }
 }
 
@@ -16,32 +31,28 @@ fn cell_btn_ui(ui: &mut egui::Ui, cell: CellState) -> egui::Response {
     let desired_size = ui.spacing().interact_size.y * egui::vec2(2.0, 2.0);
     let (rect, response) = ui.allocate_exact_size(desired_size, egui::Sense::click_and_drag());
     if ui.is_rect_visible(rect) {
-        let visuals = ui
-            .style()
-            .interact_selectable(&response, cell_selectable(cell));
+        let color = fill_color(cell, &response);
         let rounding = if response.hovered() || response.has_focus() {
             0.2
         } else {
             0.05
         } * rect.height();
         let shape: epaint::Shape = match cell {
-            CellState::Hidden => RectShape::filled(rect, rounding, visuals.bg_fill).into(),
+            CellState::Hidden => RectShape::filled(rect, rounding, color).into(),
             CellState::Flagged => {
                 let radius = if response.hovered() || response.has_focus() {
                     0.45
                 } else {
                     0.5
                 } * rect.height();
-                CircleShape::filled(rect.center(), radius, visuals.bg_fill).into()
+                CircleShape::filled(rect.center(), radius, color).into()
             }
-            CellState::Visible(Cell::Clear) => {
-                RectShape::filled(rect, rounding, Color32::TRANSPARENT).into()
-            }
+            CellState::Visible(Cell::Clear) => RectShape::filled(rect, rounding, color).into(),
             CellState::Visible(Cell::Mine) => {
-                CircleShape::filled(rect.center(), 0.5 * rect.height(), Color32::DARK_RED).into()
+                CircleShape::filled(rect.center(), 0.5 * rect.height(), color).into()
             }
             CellState::Visible(Cell::Neighbouring(_)) => {
-                RectShape::filled(rect, rounding, visuals.bg_fill).into()
+                RectShape::filled(rect, rounding, color).into()
             }
         };
         let painter = ui.painter();
@@ -52,7 +63,7 @@ fn cell_btn_ui(ui: &mut egui::Ui, cell: CellState) -> egui::Response {
                 egui::Align2::CENTER_CENTER,
                 i.to_string(),
                 FontId::default(),
-                visuals.text_color(),
+                Color32::from_gray(180),
             );
         }
     }
