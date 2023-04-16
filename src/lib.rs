@@ -199,7 +199,7 @@ impl ::eframe::App for MineHunterApp {
             let max_btn_width = (width / ncols as f32).floor() - 2.0;
             let max_btn_height = (height / nrows as f32).floor() - 2.0;
             let btn_size = max_btn_width.min(max_btn_height);
-            let scaling = (btn_size / (ui.spacing().interact_size.y * 2.0)).max(1.0);
+            let scaling = (btn_size / CellButton::base_size(ui)).max(1.0);
             egui::Grid::new(0)
                 .min_col_width(0.0)
                 .min_row_height(0.0)

@@ -1,6 +1,6 @@
 use eframe::{
     egui::{self, Response},
-    epaint::{self, CircleShape, Color32, FontId, RectShape},
+    epaint::{self, CircleShape, Color32, FontId, RectShape, Vec2},
 };
 
 use crate::engine::{Cell, CellState};
@@ -13,6 +13,10 @@ pub(crate) struct CellButton {
 impl CellButton {
     pub(crate) fn new(cell: CellState, scaling: f32) -> Self {
         Self { cell, scaling }
+    }
+
+    pub(crate) fn base_size(ui: &egui::Ui) -> f32 {
+        ui.spacing().interact_size.y * 2.0
     }
 
     fn fill_color(&self, response: &Response) -> Color32 {
@@ -40,8 +44,10 @@ impl CellButton {
 
 impl egui::Widget for CellButton {
     fn ui(self, ui: &mut egui::Ui) -> Response {
-        let desired_size = ui.spacing().interact_size.y * egui::vec2(2.0, 2.0) * self.scaling;
-        let (rect, response) = ui.allocate_exact_size(desired_size, egui::Sense::click_and_drag());
+        let (rect, response) = ui.allocate_exact_size(
+            Vec2::splat(Self::base_size(ui) * self.scaling),
+            egui::Sense::click_and_drag(),
+        );
         if ui.is_rect_visible(rect) {
             let color = self.fill_color(&response);
             let shape: epaint::Shape = match self.cell {
