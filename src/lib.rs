@@ -6,7 +6,7 @@ use std::mem;
 use eframe::{egui, epaint::Vec2};
 
 use engine::{Board, Cell, CellState, MineField, Outcome, Shape};
-use ui_objs::cell_btn;
+use ui_objs::CellButton;
 
 pub enum MineHunterApp {
     WaitingBoard(Shape, usize),
@@ -208,7 +208,7 @@ impl ::eframe::App for MineHunterApp {
                     for irow in 0..nrows {
                         for icol in 0..ncols {
                             let cell = self.get(irow, icol);
-                            let response = ui.add(cell_btn(cell, scaling));
+                            let response = ui.add(CellButton::new(cell, scaling));
                             match cell {
                                 CellState::Hidden if response.lax_clicked() => {
                                     self.reveal(irow, icol);

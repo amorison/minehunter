@@ -5,57 +5,66 @@ use eframe::{
 
 use crate::engine::{Cell, CellState};
 
-fn fill_color(cell: CellState, response: &Response) -> Color32 {
-    let hvrd = response.hovered() || response.has_focus();
-    match cell {
-        CellState::Hidden | CellState::Flagged => {
-            if hvrd {
-                Color32::from_rgb(0, 115, 160)
-            } else {
-                Color32::from_rgb(0, 92, 128)
+pub(crate) struct CellButton {
+    cell: CellState,
+    scaling: f32,
+}
+
+impl CellButton {
+    pub(crate) fn new(cell: CellState, scaling: f32) -> Self {
+        Self { cell, scaling }
+    }
+
+    fn fill_color(&self, response: &Response) -> Color32 {
+        let hvrd = response.hovered() || response.has_focus();
+        match self.cell {
+            CellState::Hidden | CellState::Flagged => {
+                if hvrd {
+                    Color32::from_rgb(0, 115, 160)
+                } else {
+                    Color32::from_rgb(0, 92, 128)
+                }
             }
-        }
-        CellState::Visible(Cell::Mine) => Color32::DARK_RED,
-        CellState::Visible(Cell::Clear) => Color32::TRANSPARENT,
-        CellState::Visible(Cell::Neighbouring(_)) => {
-            if hvrd {
-                Color32::from_gray(70)
-            } else {
-                Color32::from_gray(55)
+            CellState::Visible(Cell::Mine) => Color32::DARK_RED,
+            CellState::Visible(Cell::Clear) => Color32::TRANSPARENT,
+            CellState::Visible(Cell::Neighbouring(_)) => {
+                if hvrd {
+                    Color32::from_gray(70)
+                } else {
+                    Color32::from_gray(55)
+                }
             }
         }
     }
 }
 
-fn cell_btn_ui(ui: &mut egui::Ui, cell: CellState, scaling: f32) -> egui::Response {
-    let desired_size = ui.spacing().interact_size.y * egui::vec2(2.0, 2.0) * scaling;
-    let (rect, response) = ui.allocate_exact_size(desired_size, egui::Sense::click_and_drag());
-    if ui.is_rect_visible(rect) {
-        let color = fill_color(cell, &response);
-        let shape: epaint::Shape = match cell {
-            CellState::Flagged | CellState::Visible(Cell::Mine) => {
-                CircleShape::filled(rect.center(), 0.5 * rect.height(), color).into()
+impl egui::Widget for CellButton {
+    fn ui(self, ui: &mut egui::Ui) -> Response {
+        let desired_size = ui.spacing().interact_size.y * egui::vec2(2.0, 2.0) * self.scaling;
+        let (rect, response) = ui.allocate_exact_size(desired_size, egui::Sense::click_and_drag());
+        if ui.is_rect_visible(rect) {
+            let color = self.fill_color(&response);
+            let shape: epaint::Shape = match self.cell {
+                CellState::Flagged | CellState::Visible(Cell::Mine) => {
+                    CircleShape::filled(rect.center(), 0.5 * rect.height(), color).into()
+                }
+                _ => RectShape::filled(rect, 0.0, color).into(),
+            };
+            let painter = ui.painter();
+            painter.add(shape);
+            if let CellState::Visible(Cell::Neighbouring(i)) = self.cell {
+                painter.text(
+                    rect.center(),
+                    egui::Align2::CENTER_CENTER,
+                    i.to_string(),
+                    FontId {
+                        size: 14.0 * self.scaling,
+                        family: epaint::FontFamily::Proportional,
+                    },
+                    Color32::from_gray(180),
+                );
             }
-            _ => RectShape::filled(rect, 0.0, color).into(),
-        };
-        let painter = ui.painter();
-        painter.add(shape);
-        if let CellState::Visible(Cell::Neighbouring(i)) = cell {
-            painter.text(
-                rect.center(),
-                egui::Align2::CENTER_CENTER,
-                i.to_string(),
-                FontId {
-                    size: 14.0 * scaling,
-                    family: epaint::FontFamily::Proportional,
-                },
-                Color32::from_gray(180),
-            );
         }
+        response
     }
-    response
-}
-
-pub(crate) fn cell_btn(cell: CellState, scaling: f32) -> impl egui::Widget {
-    move |ui: &mut egui::Ui| cell_btn_ui(ui, cell, scaling)
 }
