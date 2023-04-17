@@ -5,14 +5,48 @@ use eframe::{
 
 use crate::engine::{Cell, CellState};
 
+pub(crate) enum ColorTheme {
+    Blue,
+}
+
+struct Colors {
+    main: Color32,
+    highlighted: Color32,
+}
+
+impl ColorTheme {
+    fn colors(&self) -> Colors {
+        match self {
+            ColorTheme::Blue => Colors {
+                main: Color32::from_rgb(0, 92, 128),
+                highlighted: Color32::from_rgb(0, 115, 160),
+            },
+        }
+    }
+
+    fn on_response(&self, response: &Response) -> Color32 {
+        let colors = self.colors();
+        if response.hovered() || response.has_focus() {
+            colors.highlighted
+        } else {
+            colors.main
+        }
+    }
+}
+
 pub(crate) struct CellButton {
     cell: CellState,
     scaling: f32,
+    theme: ColorTheme,
 }
 
 impl CellButton {
-    pub(crate) fn new(cell: CellState, scaling: f32) -> Self {
-        Self { cell, scaling }
+    pub(crate) fn new(cell: CellState, scaling: f32, theme: ColorTheme) -> Self {
+        Self {
+            cell,
+            scaling,
+            theme,
+        }
     }
 
     pub(crate) fn base_size(ui: &egui::Ui) -> f32 {
@@ -20,24 +54,11 @@ impl CellButton {
     }
 
     fn fill_color(&self, response: &Response) -> Color32 {
-        let hvrd = response.hovered() || response.has_focus();
         match self.cell {
-            CellState::Hidden | CellState::Flagged => {
-                if hvrd {
-                    Color32::from_rgb(0, 115, 160)
-                } else {
-                    Color32::from_rgb(0, 92, 128)
-                }
-            }
+            CellState::Hidden | CellState::Flagged => self.theme.on_response(response),
             CellState::Visible(Cell::Mine) => Color32::DARK_RED,
             CellState::Visible(Cell::Clear) => Color32::TRANSPARENT,
-            CellState::Visible(Cell::Neighbouring(_)) => {
-                if hvrd {
-                    Color32::from_gray(70)
-                } else {
-                    Color32::from_gray(55)
-                }
-            }
+            CellState::Visible(Cell::Neighbouring(_)) => Color32::from_gray(35),
         }
     }
 }
@@ -64,10 +85,10 @@ impl egui::Widget for CellButton {
                     egui::Align2::CENTER_CENTER,
                     i.to_string(),
                     FontId {
-                        size: 14.0 * self.scaling,
+                        size: 18.0 * self.scaling,
                         family: epaint::FontFamily::Proportional,
                     },
-                    Color32::from_gray(180),
+                    self.theme.on_response(&response),
                 );
             }
         }

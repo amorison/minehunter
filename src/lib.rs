@@ -9,7 +9,7 @@ use eframe::{
 };
 
 use engine::{Board, Cell, CellState, MineField, Outcome, Shape};
-use ui_objs::CellButton;
+use ui_objs::{CellButton, ColorTheme};
 
 pub enum MineHunterApp {
     WaitingBoard(Shape, usize),
@@ -202,7 +202,7 @@ impl ::eframe::App for MineHunterApp {
                     for irow in 0..nrows {
                         for icol in 0..ncols {
                             let cell = self.get(irow, icol);
-                            let response = ui.add(CellButton::new(cell, scaling));
+                            let response = ui.add(CellButton::new(cell, scaling, ColorTheme::Blue));
                             match cell {
                                 CellState::Hidden if response.lax_clicked() => {
                                     self.reveal(irow, icol);
