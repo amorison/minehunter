@@ -5,6 +5,7 @@ use eframe::{
 
 use crate::engine::{Cell, CellState};
 
+#[derive(Copy, Clone)]
 pub(crate) enum ColorTheme {
     Blue,
 }

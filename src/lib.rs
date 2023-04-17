@@ -11,14 +11,19 @@ use eframe::{
 use engine::{Board, Cell, CellState, MineField, Outcome, Shape};
 use ui_objs::{CellButton, ColorTheme};
 
-pub enum MineHunterApp {
+enum BoardState {
     WaitingBoard(Shape, usize),
     InitializedBoard(Board),
     WonBoard(Board),
     LostBoard(Board),
 }
 
-impl MineHunterApp {
+pub struct MineHunterApp {
+    board: BoardState,
+    theme: ColorTheme,
+}
+
+impl BoardState {
     fn shape(&self) -> &Shape {
         match self {
             Self::WaitingBoard(shape, _) => shape,
@@ -109,13 +114,16 @@ impl MineHunterApp {
 
 impl MineHunterApp {
     pub fn new(_cc: &::eframe::CreationContext<'_>) -> Self {
-        Self::WaitingBoard(
-            Shape {
-                nrows: 16,
-                ncols: 16,
-            },
-            40,
-        )
+        Self {
+            board: BoardState::WaitingBoard(
+                Shape {
+                    nrows: 16,
+                    ncols: 16,
+                },
+                40,
+            ),
+            theme: ColorTheme::Blue,
+        }
     }
 }
 
@@ -139,10 +147,10 @@ impl ::eframe::App for MineHunterApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut ::eframe::Frame) {
         egui::SidePanel::left("ctrl_panel").show(ctx, |ui| {
             ui.add_space(15.0);
-            let shape = self.shape();
+            let shape = self.board.shape();
             let mut nrows = shape.nrows;
             let mut ncols = shape.ncols;
-            let mut nmines = self.nmines();
+            let mut nmines = self.board.nmines();
             let nmines_min = shape.ncells() / 10;
             let nmines_max = 2 * shape.ncells() / 5;
             ui.add(egui::Slider::new(&mut nrows, 8..=30).text("Rows"));
@@ -150,20 +158,20 @@ impl ::eframe::App for MineHunterApp {
             ui.add(egui::Slider::new(&mut nmines, nmines_min..=nmines_max).text("Mines"));
 
             ui.add_space(15.0);
-            if !matches!(self, Self::InitializedBoard(_)) {
+            if !matches!(self.board, BoardState::InitializedBoard(_)) {
                 if nrows != shape.nrows || ncols != shape.ncols {
                     nmines = nrows * ncols / 5;
                 }
-                if nrows != shape.nrows || ncols != shape.ncols || nmines != self.nmines() {
-                    *self = Self::WaitingBoard(Shape { nrows, ncols }, nmines);
+                if nrows != shape.nrows || ncols != shape.ncols || nmines != self.board.nmines() {
+                    self.board = BoardState::WaitingBoard(Shape { nrows, ncols }, nmines);
                 }
             }
 
-            let msg: String = match self {
-                Self::WonBoard(_) => "Congratulations!".to_owned(),
-                Self::LostBoard(_) => "You lost...".to_owned(),
-                Self::WaitingBoard(..) => "Pick a cell".to_owned(),
-                Self::InitializedBoard(board) => {
+            let msg: String = match &self.board {
+                BoardState::WonBoard(_) => "Congratulations!".to_owned(),
+                BoardState::LostBoard(_) => "You lost...".to_owned(),
+                BoardState::WaitingBoard(..) => "Pick a cell".to_owned(),
+                BoardState::InitializedBoard(board) => {
                     format!("Flagged: {} / {}", board.nflagged(), board.nmines())
                 }
             };
@@ -171,7 +179,7 @@ impl ::eframe::App for MineHunterApp {
 
             ui.add_space(15.0);
             if ui.button("Restart").clicked() {
-                *self = Self::WaitingBoard(*self.shape(), self.nmines());
+                self.board = BoardState::WaitingBoard(*self.board.shape(), self.board.nmines());
             }
             let presets = [(8, 8, 10), (16, 16, 40), (16, 32, 100)];
             for (nrows, ncols, nmines) in presets {
@@ -179,13 +187,13 @@ impl ::eframe::App for MineHunterApp {
                     .button(format!("{nrows}x{ncols}, {nmines} mines"))
                     .clicked()
                 {
-                    *self = Self::WaitingBoard(Shape { nrows, ncols }, nmines);
+                    self.board = BoardState::WaitingBoard(Shape { nrows, ncols }, nmines);
                 }
             }
         });
         egui::CentralPanel::default().show(ctx, |ui| {
-            let nrows = self.shape().nrows;
-            let ncols = self.shape().ncols;
+            let nrows = self.board.shape().nrows;
+            let ncols = self.board.shape().ncols;
             let Vec2 {
                 x: width,
                 y: height,
@@ -201,19 +209,19 @@ impl ::eframe::App for MineHunterApp {
                 .show(ui, |ui| {
                     for irow in 0..nrows {
                         for icol in 0..ncols {
-                            let cell = self.get(irow, icol);
-                            let response = ui.add(CellButton::new(cell, scaling, ColorTheme::Blue));
+                            let cell = self.board.get(irow, icol);
+                            let response = ui.add(CellButton::new(cell, scaling, self.theme));
                             match cell {
                                 CellState::Hidden if response.lax_clicked() => {
-                                    self.reveal(irow, icol);
+                                    self.board.reveal(irow, icol);
                                 }
                                 CellState::Hidden | CellState::Flagged
                                     if response.lax_r_clicked() =>
                                 {
-                                    self.toggle_flag(irow, icol);
+                                    self.board.toggle_flag(irow, icol);
                                 }
                                 CellState::Visible(_) if response.lax_clicked() => {
-                                    self.reveal_around_nb(irow, icol);
+                                    self.board.reveal_around_nb(irow, icol);
                                 }
                                 _ => {}
                             }
@@ -222,6 +230,6 @@ impl ::eframe::App for MineHunterApp {
                     }
                 });
         });
-        self.update_win_lost();
+        self.board.update_win_lost();
     }
 }
