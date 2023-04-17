@@ -77,13 +77,6 @@ impl MineField {
         }
     }
 
-    pub fn with_rand_mines(nrows: usize, ncols: usize, nmines: usize) -> Self {
-        let mut rng = ::rand::thread_rng();
-        let mines = ::rand::seq::index::sample(&mut rng, nrows * ncols, nmines);
-        let mines = mines.iter().map(|i| (i / ncols, i % ncols));
-        Self::new(nrows, ncols, mines)
-    }
-
     pub fn with_rand_mines_avoiding(
         nrows: usize,
         ncols: usize,
@@ -104,14 +97,6 @@ impl MineField {
     pub fn get(&self, irow: usize, icol: usize) -> Cell {
         let icell = self.shape.idx(irow, icol);
         self.cells[icell]
-    }
-
-    pub fn nrows(&self) -> usize {
-        self.shape.nrows
-    }
-
-    pub fn ncols(&self) -> usize {
-        self.shape.ncols
     }
 }
 
@@ -211,8 +196,8 @@ mod tests {
     #[test]
     fn new_minefield() {
         let mf = MineField::new(3, 4, [(1, 2), (0, 0)]);
-        assert_eq!(mf.nrows(), 3);
-        assert_eq!(mf.ncols(), 4);
+        assert_eq!(mf.shape.nrows, 3);
+        assert_eq!(mf.shape.ncols, 4);
         assert!(matches!(mf.get(1, 2), Cell::Mine));
         assert!(matches!(mf.get(0, 0), Cell::Mine));
         assert!(matches!(mf.get(2, 1), Cell::Neighbouring(1)));
@@ -220,21 +205,6 @@ mod tests {
         assert!(matches!(mf.get(1, 1), Cell::Neighbouring(2)));
         assert!(matches!(mf.get(2, 0), Cell::Clear));
         assert!(matches!(mf.get(1, 3), Cell::Neighbouring(1)));
-    }
-
-    #[test]
-    fn rand_new_minefield() {
-        let mf = MineField::with_rand_mines(15, 4, 8);
-        let nmines: usize = (0..15)
-            .map(|irow| {
-                (0..4)
-                    .filter(|&icol| matches!(mf.get(irow, icol), Cell::Mine))
-                    .count()
-            })
-            .sum();
-        assert_eq!(mf.nrows(), 15);
-        assert_eq!(mf.ncols(), 4);
-        assert_eq!(nmines, 8);
     }
 
     #[test]
