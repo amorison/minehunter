@@ -12,10 +12,10 @@ use engine::{Board, Cell, CellState, MineField, Outcome, Shape};
 use ui_objs::{CellButton, ColorTheme};
 
 enum BoardState {
-    WaitingBoard(Shape, usize),
-    InitializedBoard(Board),
-    WonBoard(Board),
-    LostBoard(Board),
+    Waiting(Shape, usize),
+    Initialized(Board),
+    Won(Board),
+    Lost(Board),
 }
 
 pub struct MineHunterApp {
@@ -26,32 +26,32 @@ pub struct MineHunterApp {
 impl BoardState {
     fn shape(&self) -> &Shape {
         match self {
-            Self::WaitingBoard(shape, _) => shape,
-            Self::InitializedBoard(board) => board.shape(),
-            Self::WonBoard(board) => board.shape(),
-            Self::LostBoard(board) => board.shape(),
+            Self::Waiting(shape, _) => shape,
+            Self::Initialized(board) => board.shape(),
+            Self::Won(board) => board.shape(),
+            Self::Lost(board) => board.shape(),
         }
     }
 
     fn nmines(&self) -> usize {
         match self {
-            Self::WaitingBoard(_, nmines) => *nmines,
-            Self::InitializedBoard(b) | Self::WonBoard(b) | Self::LostBoard(b) => b.nmines(),
+            Self::Waiting(_, nmines) => *nmines,
+            Self::Initialized(b) | Self::Won(b) | Self::Lost(b) => b.nmines(),
         }
     }
 
     fn get(&self, irow: usize, icol: usize) -> CellState {
         match self {
-            Self::WaitingBoard(..) => CellState::Hidden,
-            Self::InitializedBoard(board) => board.get(irow, icol),
-            Self::WonBoard(board) => board.get(irow, icol),
-            Self::LostBoard(board) => board.get(irow, icol),
+            Self::Waiting(..) => CellState::Hidden,
+            Self::Initialized(board) => board.get(irow, icol),
+            Self::Won(board) => board.get(irow, icol),
+            Self::Lost(board) => board.get(irow, icol),
         }
     }
 
     fn reveal(&mut self, irow: usize, icol: usize) {
         match self {
-            Self::WaitingBoard(shape, nmines) => {
+            Self::Waiting(shape, nmines) => {
                 let mut board = Board::new(MineField::with_rand_mines_avoiding(
                     shape.nrows,
                     shape.ncols,
@@ -60,12 +60,12 @@ impl BoardState {
                     icol,
                 ));
                 board.reveal(irow, icol);
-                *self = Self::InitializedBoard(board);
+                *self = Self::Initialized(board);
             }
-            Self::InitializedBoard(board) => {
+            Self::Initialized(board) => {
                 board.reveal(irow, icol);
             }
-            Self::WonBoard(_) | Self::LostBoard(_) => {}
+            Self::Won(_) | Self::Lost(_) => {}
         }
     }
 
@@ -87,13 +87,13 @@ impl BoardState {
     }
 
     fn toggle_flag(&mut self, irow: usize, icol: usize) {
-        if let Self::InitializedBoard(board) = self {
+        if let Self::Initialized(board) = self {
             board.toggle_flag(irow, icol);
         }
     }
 
     fn update_win_lost(&mut self) {
-        if let Self::InitializedBoard(board) = self {
+        if let Self::Initialized(board) = self {
             match board.outcome() {
                 Outcome::Won => {
                     for (ir, ic) in board.shape().cells() {
@@ -101,10 +101,10 @@ impl BoardState {
                             board.toggle_flag(ir, ic);
                         }
                     }
-                    *self = Self::WonBoard(mem::take(board));
+                    *self = Self::Won(mem::take(board));
                 }
                 Outcome::Lost => {
-                    *self = Self::LostBoard(mem::take(board));
+                    *self = Self::Lost(mem::take(board));
                 }
                 Outcome::Ongoing => {}
             }
@@ -115,7 +115,7 @@ impl BoardState {
 impl MineHunterApp {
     pub fn new(_cc: &::eframe::CreationContext<'_>) -> Self {
         Self {
-            board: BoardState::WaitingBoard(
+            board: BoardState::Waiting(
                 Shape {
                     nrows: 16,
                     ncols: 16,
@@ -158,20 +158,20 @@ impl ::eframe::App for MineHunterApp {
             ui.add(egui::Slider::new(&mut nmines, nmines_min..=nmines_max).text("Mines"));
 
             ui.add_space(15.0);
-            if !matches!(self.board, BoardState::InitializedBoard(_)) {
+            if !matches!(self.board, BoardState::Initialized(_)) {
                 if nrows != shape.nrows || ncols != shape.ncols {
                     nmines = nrows * ncols / 5;
                 }
                 if nrows != shape.nrows || ncols != shape.ncols || nmines != self.board.nmines() {
-                    self.board = BoardState::WaitingBoard(Shape { nrows, ncols }, nmines);
+                    self.board = BoardState::Waiting(Shape { nrows, ncols }, nmines);
                 }
             }
 
             let msg: String = match &self.board {
-                BoardState::WonBoard(_) => "Congratulations!".to_owned(),
-                BoardState::LostBoard(_) => "You lost...".to_owned(),
-                BoardState::WaitingBoard(..) => "Pick a cell".to_owned(),
-                BoardState::InitializedBoard(board) => {
+                BoardState::Won(_) => "Congratulations!".to_owned(),
+                BoardState::Lost(_) => "You lost...".to_owned(),
+                BoardState::Waiting(..) => "Pick a cell".to_owned(),
+                BoardState::Initialized(board) => {
                     format!("Flagged: {} / {}", board.nflagged(), board.nmines())
                 }
             };
@@ -179,7 +179,7 @@ impl ::eframe::App for MineHunterApp {
 
             ui.add_space(15.0);
             if ui.button("Restart").clicked() {
-                self.board = BoardState::WaitingBoard(*self.board.shape(), self.board.nmines());
+                self.board = BoardState::Waiting(*self.board.shape(), self.board.nmines());
             }
             let presets = [(8, 8, 10), (16, 16, 40), (16, 32, 100)];
             for (nrows, ncols, nmines) in presets {
@@ -187,7 +187,7 @@ impl ::eframe::App for MineHunterApp {
                     .button(format!("{nrows}x{ncols}, {nmines} mines"))
                     .clicked()
                 {
-                    self.board = BoardState::WaitingBoard(Shape { nrows, ncols }, nmines);
+                    self.board = BoardState::Waiting(Shape { nrows, ncols }, nmines);
                 }
             }
         });
