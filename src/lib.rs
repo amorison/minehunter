@@ -9,7 +9,7 @@ use eframe::{
 };
 
 use engine::{Board, Cell, CellState, MineField, Outcome, Shape};
-use ui_objs::{CellButton, ColorTheme};
+use ui_objs::{theme_picker, CellButton, ColorTheme};
 
 enum BoardState {
     Waiting(Shape, usize),
@@ -190,6 +190,9 @@ impl ::eframe::App for MineHunterApp {
                     self.board = BoardState::Waiting(Shape { nrows, ncols }, nmines);
                 }
             }
+
+            ui.add_space(15.0);
+            theme_picker(&mut self.theme, ui);
         });
         egui::CentralPanel::default().show(ctx, |ui| {
             let nrows = self.board.shape().nrows;

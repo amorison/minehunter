@@ -5,9 +5,11 @@ use eframe::{
 
 use crate::engine::{Cell, CellState};
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub(crate) enum ColorTheme {
     Blue,
+    Green,
+    Pink,
 }
 
 struct Colors {
@@ -22,6 +24,14 @@ impl ColorTheme {
                 main: Color32::from_rgb(0, 92, 128),
                 highlighted: Color32::from_rgb(0, 115, 160),
             },
+            ColorTheme::Green => Colors {
+                main: Color32::from_rgb(0, 128, 92),
+                highlighted: Color32::from_rgb(0, 160, 115),
+            },
+            ColorTheme::Pink => Colors {
+                main: Color32::from_rgb(255, 128, 191),
+                highlighted: Color32::from_rgb(255, 179, 217),
+            },
         }
     }
 
@@ -33,6 +43,43 @@ impl ColorTheme {
             colors.main
         }
     }
+}
+
+struct ThemeOption {
+    selected: bool,
+    theme: ColorTheme,
+}
+
+impl egui::Widget for ThemeOption {
+    fn ui(self, ui: &mut egui::Ui) -> Response {
+        let size = ui.spacing().interact_size.y * 2.0;
+        let (rect, response) =
+            ui.allocate_exact_size(Vec2::splat(size), egui::Sense::click_and_drag());
+        ui.painter()
+            .circle_filled(rect.center(), size / 3.0, self.theme.on_response(&response));
+        if self.selected {
+            ui.painter()
+                .circle_stroke(rect.center(), size / 2.0, (4.0, Color32::from_gray(70)));
+        }
+
+        response
+    }
+}
+
+pub(crate) fn theme_picker(theme: &mut ColorTheme, ui: &mut egui::Ui) {
+    ui.horizontal(|ui| {
+        for ct in [ColorTheme::Blue, ColorTheme::Green, ColorTheme::Pink] {
+            if ui
+                .add(ThemeOption {
+                    selected: ct == *theme,
+                    theme: ct,
+                })
+                .clicked()
+            {
+                *theme = ct;
+            };
+        }
+    });
 }
 
 pub(crate) struct CellButton {
