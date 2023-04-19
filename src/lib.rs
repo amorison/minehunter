@@ -175,7 +175,11 @@ impl ::eframe::App for MineHunterApp {
                     format!("Flagged: {} / {}", board.nflagged(), board.nmines())
                 }
             };
-            ui.label(RichText::new(msg).size(20.0));
+            let mut msg = RichText::new(msg).size(20.0);
+            if matches!(self.board, BoardState::Won(_)) {
+                msg = msg.color(self.theme.main_color());
+            }
+            ui.label(msg);
 
             ui.add_space(15.0);
             if ui.button("Restart").clicked() {

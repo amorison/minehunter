@@ -18,6 +18,10 @@ struct Colors {
 }
 
 impl ColorTheme {
+    pub(crate) fn main_color(&self) -> Color32 {
+        self.colors().main
+    }
+
     fn colors(&self) -> Colors {
         match self {
             ColorTheme::Blue => Colors {
