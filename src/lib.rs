@@ -4,7 +4,7 @@ mod ui_objs;
 use std::mem;
 
 use eframe::{
-    egui::{self, RichText},
+    egui::{self, Button, RichText},
     epaint::Vec2,
 };
 
@@ -182,18 +182,25 @@ impl ::eframe::App for MineHunterApp {
             ui.label(msg);
 
             ui.add_space(15.0);
-            if ui.button("Restart").clicked() {
-                self.board = BoardState::Waiting(*self.board.shape(), self.board.nmines());
-            }
-            let presets = [(8, 8, 10), (16, 16, 40), (16, 32, 100)];
-            for (nrows, ncols, nmines) in presets {
-                if ui
-                    .button(format!("{nrows}x{ncols}, {nmines} mines"))
-                    .clicked()
-                {
-                    self.board = BoardState::Waiting(Shape { nrows, ncols }, nmines);
+
+            let btn_size = Vec2::splat(ui.available_width() / 2.5);
+            egui::Grid::new(1).show(ui, |ui| {
+                let btn = Button::new("Restart").min_size(btn_size);
+                if ui.add(btn).clicked() {
+                    self.board = BoardState::Waiting(*self.board.shape(), self.board.nmines());
                 }
-            }
+                let presets = [(8, 8, 10), (16, 16, 40), (16, 32, 100)];
+                for (ip, (nrows, ncols, nmines)) in presets.into_iter().enumerate() {
+                    let btn =
+                        Button::new(format!("{nrows}x{ncols}\n{nmines} mines")).min_size(btn_size);
+                    if ui.add(btn).clicked() {
+                        self.board = BoardState::Waiting(Shape { nrows, ncols }, nmines);
+                    }
+                    if ip % 2 == 0 {
+                        ui.end_row();
+                    }
+                }
+            });
 
             ui.add_space(15.0);
             theme_picker(&mut self.theme, ui);
