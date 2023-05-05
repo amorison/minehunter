@@ -1,7 +1,10 @@
 mod engine;
 mod ui_objs;
 
-use std::mem;
+use std::{
+    mem,
+    time::{Duration, Instant},
+};
 
 use eframe::{
     egui::{self, Button, RichText},
@@ -11,10 +14,22 @@ use eframe::{
 use engine::{Board, Cell, CellState, MineField, Outcome, Shape};
 use ui_objs::{theme_picker, CellButton, ColorTheme};
 
+fn format_duration(duration: Duration) -> String {
+    let seconds = duration.as_secs();
+    let minutes = seconds / 60;
+    let seconds = seconds % 60;
+    let millis = duration.subsec_millis();
+    if minutes > 0 {
+        format!("{minutes}:{seconds:02}.{millis:03}")
+    } else {
+        format!("{seconds}.{millis:03}")
+    }
+}
+
 enum BoardState {
     Waiting(Shape, usize),
-    Initialized(Board),
-    Won(Board),
+    Initialized(Board, Instant),
+    Won(Board, Duration),
     Lost(Board),
 }
 
@@ -27,8 +42,8 @@ impl BoardState {
     fn shape(&self) -> &Shape {
         match self {
             Self::Waiting(shape, _) => shape,
-            Self::Initialized(board) => board.shape(),
-            Self::Won(board) => board.shape(),
+            Self::Initialized(board, _) => board.shape(),
+            Self::Won(board, _) => board.shape(),
             Self::Lost(board) => board.shape(),
         }
     }
@@ -36,15 +51,15 @@ impl BoardState {
     fn nmines(&self) -> usize {
         match self {
             Self::Waiting(_, nmines) => *nmines,
-            Self::Initialized(b) | Self::Won(b) | Self::Lost(b) => b.nmines(),
+            Self::Initialized(b, _) | Self::Won(b, _) | Self::Lost(b) => b.nmines(),
         }
     }
 
     fn get(&self, irow: usize, icol: usize) -> CellState {
         match self {
             Self::Waiting(..) => CellState::Hidden,
-            Self::Initialized(board) => board.get(irow, icol),
-            Self::Won(board) => board.get(irow, icol),
+            Self::Initialized(board, _) => board.get(irow, icol),
+            Self::Won(board, _) => board.get(irow, icol),
             Self::Lost(board) => board.get(irow, icol),
         }
     }
@@ -60,12 +75,12 @@ impl BoardState {
                     icol,
                 ));
                 board.reveal(irow, icol);
-                *self = Self::Initialized(board);
+                *self = Self::Initialized(board, Instant::now());
             }
-            Self::Initialized(board) => {
+            Self::Initialized(board, _) => {
                 board.reveal(irow, icol);
             }
-            Self::Won(_) | Self::Lost(_) => {}
+            Self::Won(_, _) | Self::Lost(_) => {}
         }
     }
 
@@ -87,13 +102,13 @@ impl BoardState {
     }
 
     fn toggle_flag(&mut self, irow: usize, icol: usize) {
-        if let Self::Initialized(board) = self {
+        if let Self::Initialized(board, _) = self {
             board.toggle_flag(irow, icol);
         }
     }
 
     fn update_win_lost(&mut self) {
-        if let Self::Initialized(board) = self {
+        if let Self::Initialized(board, start_time) = self {
             match board.outcome() {
                 Outcome::Won => {
                     for (ir, ic) in board.shape().cells() {
@@ -101,7 +116,7 @@ impl BoardState {
                             board.toggle_flag(ir, ic);
                         }
                     }
-                    *self = Self::Won(mem::take(board));
+                    *self = Self::Won(mem::take(board), Instant::now() - *start_time);
                 }
                 Outcome::Lost => {
                     *self = Self::Lost(mem::take(board));
@@ -158,7 +173,7 @@ impl ::eframe::App for MineHunterApp {
             ui.add(egui::Slider::new(&mut nmines, nmines_min..=nmines_max).text("Mines"));
 
             ui.add_space(15.0);
-            if !matches!(self.board, BoardState::Initialized(_)) {
+            if !matches!(self.board, BoardState::Initialized(_, _)) {
                 if nrows != shape.nrows || ncols != shape.ncols {
                     nmines = nrows * ncols / 5;
                 }
@@ -168,15 +183,15 @@ impl ::eframe::App for MineHunterApp {
             }
 
             let msg: String = match &self.board {
-                BoardState::Won(_) => "Congratulations!".to_owned(),
+                BoardState::Won(_, _) => "Congratulations!".to_owned(),
                 BoardState::Lost(_) => "You lost...".to_owned(),
                 BoardState::Waiting(..) => "Pick a cell".to_owned(),
-                BoardState::Initialized(board) => {
+                BoardState::Initialized(board, _) => {
                     format!("Flagged: {} / {}", board.nflagged(), board.nmines())
                 }
             };
             let mut msg = RichText::new(msg).size(20.0);
-            if matches!(self.board, BoardState::Won(_)) {
+            if matches!(self.board, BoardState::Won(_, _)) {
                 msg = msg.color(self.theme.main_color());
             }
             ui.label(msg);
@@ -204,6 +219,16 @@ impl ::eframe::App for MineHunterApp {
 
             ui.add_space(15.0);
             theme_picker(&mut self.theme, ui);
+
+            ui.add_space(15.0);
+            if let BoardState::Initialized(_, start_time) = self.board {
+                let time = Instant::now() - start_time;
+                let msg = RichText::new(format_duration(time)).size(20.0);
+                ui.label(msg);
+            } else if let BoardState::Won(_, time) = self.board {
+                let msg = RichText::new(format_duration(time)).size(20.0);
+                ui.label(msg);
+            }
         });
         egui::CentralPanel::default().show(ctx, |ui| {
             let nrows = self.board.shape().nrows;
