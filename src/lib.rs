@@ -160,6 +160,7 @@ impl LaxClicked for egui::Response {
 
 impl ::eframe::App for MineHunterApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut ::eframe::Frame) {
+        ctx.request_repaint_after(Duration::from_millis(111));
         egui::SidePanel::left("ctrl_panel").show(ctx, |ui| {
             ui.add_space(15.0);
             let shape = self.board.shape();
