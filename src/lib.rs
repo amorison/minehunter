@@ -149,12 +149,12 @@ trait LaxClicked {
 
 impl LaxClicked for egui::Response {
     fn lax_clicked(&self) -> bool {
-        self.clicked() || (self.drag_released_by(egui::PointerButton::Primary) && self.hovered())
+        self.clicked() || (self.drag_stopped_by(egui::PointerButton::Primary) && self.hovered())
     }
 
     fn lax_r_clicked(&self) -> bool {
         self.secondary_clicked()
-            || (self.drag_released_by(egui::PointerButton::Secondary) && self.hovered())
+            || (self.drag_stopped_by(egui::PointerButton::Secondary) && self.hovered())
     }
 }
 
